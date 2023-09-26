@@ -56,7 +56,7 @@ jobs:
         with:
           exit-code: 0
           format: template
-          image-ref: ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+          image-ref: ghcr.io/${{ github.repository }}:${{ steps.meta.outputs.tags }}
           ignore-unfixed: true
           output: trivy.html
           template: "@/contrib/html.tpl"

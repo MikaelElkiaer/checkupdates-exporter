@@ -20,12 +20,13 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
+          flavor:
+            latest=false
           images: |
             ghcr.io/${{ github.repository }}
           labels: |
             org.opencontainers.image.description=${{ github.event.repository.description }}
           tags: |
-            latest=false
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}

@@ -3,7 +3,7 @@ name: ci
 on:
   push:
     branches:
-      - "**"
+      - "main"
     tags:
       - "v*.*.*"
   pull_request:
@@ -28,9 +28,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=sha
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -49,7 +46,37 @@ jobs:
           cache-to: type=gha,mode=max
           context: .
           file: docker/Dockerfile
-          platforms: linux/amd64,linux/arm64
+          load: ${{ github.event_name == 'pull_request' }}
+          platforms: ${{ github.event_name != 'pull_request' && 'linux/amd64,linux/arm64' || '' }}
+          provenance: false
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          exit-code: 0
+          format: template
+          image-ref: ${{ steps.meta.outputs.tags }}
+          ignore-unfixed: true
+          output: trivy.html
+          template: "@/contrib/html.tpl"
+      - if: success() || failure()
+        continue-on-error: true
+        name: Output Trivy results to step summary
+        run: |
+          # Clean html tags not used in GitHub markdown
+          [ -s trivy.html ] && \
+            sed -e '/<script>/,/<\/script>/d' \
+                -e '/<style>/,/<\/style>/d' \
+                -e '/<title>/d' \
+                trivy.html >> $GITHUB_STEP_SUMMARY
+      - name: Delete untagged Docker images
+        continue-on-error: true
+        if: github.event_name == 'push'
+        uses: actions/delete-package-versions@v4
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: container
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: "true"

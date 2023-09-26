@@ -25,6 +25,7 @@ jobs:
           labels: |
             org.opencontainers.image.description=${{ github.event.repository.description }}
           tags: |
+            latest=false
             type=ref,event=branch
             type=ref,event=pr
             type=semver,pattern={{version}}

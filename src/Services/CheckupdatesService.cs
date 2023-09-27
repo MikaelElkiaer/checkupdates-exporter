@@ -8,7 +8,7 @@ namespace Services;
 
 public class CheckupdatesService : BackgroundService
 {
-    private readonly string[] metricLabels = new[] { "name", "major", "minor", "patch", "prerelease" };
+    private readonly string[] metricLabels = new[] { "name", "level" };
     private readonly Gauge gauge = null!;
     private readonly FileSystemWatcher watcher = null!;
     private readonly string versionRegex = null!;
@@ -63,10 +63,10 @@ public class CheckupdatesService : BackgroundService
         logger.LogInformation("Set {UpdateCount} gauges", updates.Count);
     }
 
-    private string[] ToArray((string Name, string Major, string Minor, string Patch, string Prerelease) u) =>
-        new string[] { u.Name, u.Major, u.Minor, u.Patch, u.Prerelease };
+    private string[] ToArray((string Name, string Level) u) =>
+        new string[] { u.Name, u.Level };
 
-    private (string Name, string Major, string Minor, string Patch, string Prerelease) GetChangeParameters(string updateLine)
+    private (string Name, string Level) GetChangeParameters(string updateLine)
     {
         var split = updateLine.Split(' ');
         var name = split[0];
@@ -77,17 +77,16 @@ public class CheckupdatesService : BackgroundService
         var bv = Regex.Match(beforeVersion, versionRegex);
         var av = Regex.Match(afterVersion, versionRegex);
 
-        var isMajor = bv.Groups["major"]?.Value != av.Groups["major"]?.Value ? "1" : "0";
-        var isMinor = bv.Groups["minor"]?.Value != av.Groups["minor"]?.Value ? "1" : "0";
-        var isPatch = bv.Groups["patch"]?.Value != av.Groups["patch"]?.Value ? "1" : "0";
-        var isPreRelease = bv.Groups["prerelease"]?.Value != av.Groups["prerelease"]?.Value ? "1" : "0";
+        foreach (var level in new[] { "major", "minor", "patch", "prerelease" })
+            if (bv.Groups[level]?.Value != av.Groups[level]?.Value)
+                return (name, level);
 
-        return (name, isMajor, isMinor, isPatch, isPreRelease);
+        return (name, "Unknown");
     }
 
-    private (string Name, string Major, string Minor, string Patch, string Prerelease) ToTuple(string[] values) =>
+    private (string Name, string Level) ToTuple(string[] values) =>
     (
-        values[0], values[1], values[2], values[3], values[4]
+        values[0], values[1]
     );
 
     private void OnChanged(object sender, FileSystemEventArgs e)

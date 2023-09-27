@@ -73,12 +73,3 @@ jobs:
                 -e '/<style>/,/<\/style>/d' \
                 -e '/<title>/d' \
                 trivy.html >> $GITHUB_STEP_SUMMARY
-      - name: Delete untagged Docker images
-        continue-on-error: true
-        if: github.event_name == 'push'
-        uses: actions/delete-package-versions@v4
-        with:
-          package-name: ${{ github.event.repository.name }}
-          package-type: container
-          min-versions-to-keep: 0
-          delete-only-untagged-versions: "true"

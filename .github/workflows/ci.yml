@@ -57,7 +57,7 @@ jobs:
       - name: Run Trivy vulnerability scanner
         uses: aquasecurity/trivy-action@master
         with:
-          exit-code: 0
+          exit-code: 1
           format: template
           image-ref: ${{ steps.meta.outputs.tags }}
           ignore-unfixed: true
@@ -73,3 +73,10 @@ jobs:
                 -e '/<style>/,/<\/style>/d' \
                 -e '/<title>/d' \
                 trivy.html >> $GITHUB_STEP_SUMMARY
+      - if: github.ref_type == 'tag'
+        name: Create release
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}"
+        run: |
+           gh release create "$TAG" --generate-notes

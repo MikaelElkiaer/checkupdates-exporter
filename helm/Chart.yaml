@@ -1,0 +1,19 @@
+apiVersion: v2
+name: checkupdates-prometheus-exporter
+description: Prometheus exporter that turns https://man.archlinux.org/man/checkupdates.8 output into labelled gauges.
+sources:
+  - https://github.com/mikaelelkiaer/checkupdates-prometheus-exporter/tree/main/helm
+type: application
+version: 1.0.0
+appVersion: 1.0.7
+dependencies:
+  - name: common
+    repository: oci://registry-1.docker.io/bitnamicharts
+    tags:
+      - bitnami-common
+    version: 2.x.x
+annotations:
+  # OCI container labels to be set before pushing
+  org.opencontainers.image.created: ""
+  org.opencontainers.image.licenses: ""
+  org.opencontainers.image.revision: ""

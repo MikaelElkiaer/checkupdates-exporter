@@ -80,12 +80,3 @@ jobs:
           TAG: ${{ github.ref_name }}"
         run: |
            gh release create "$TAG" --generate-notes
-      - name: Delete untagged Docker images
-        continue-on-error: true
-        if: github.event_name == 'push'
-        uses: actions/delete-package-versions@v4
-        with:
-          package-name: ${{ github.event.repository.name }}
-          package-type: container
-          min-versions-to-keep: 1
-          delete-only-untagged-versions: "true"

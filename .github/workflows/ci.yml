@@ -4,15 +4,17 @@ on:
   push:
     branches:
       - "main"
-    paths-ignore:
-      - helm
+    paths:
+      - docker
+      - src
     tags:
       - "v*.*.*"
   pull_request:
     branches:
       - "main"
-    paths-ignore:
-      - helm
+    paths:
+      - docker
+      - src
 
 jobs:
   docker:

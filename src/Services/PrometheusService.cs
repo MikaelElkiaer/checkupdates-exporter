@@ -6,17 +6,17 @@ using Prometheus;
 
 namespace Services;
 
-public class MetricsService : BackgroundService
+public class PrometheusService : BackgroundService
 {
     private readonly string[] metricLabels = new[] { "name", "level" };
     private readonly Gauge gauge = null!;
     private readonly MetricServer metricServer = null!;
 
-    private readonly IOptions<Options.Metrics> options = null!;
+    private readonly IOptions<Options.Prometheus> options = null!;
     private readonly CheckupdatesService checkupdatesService = null!;
-    private readonly ILogger<MetricsService> logger = null!;
+    private readonly ILogger<PrometheusService> logger = null!;
 
-    public MetricsService(IOptions<Options.Metrics> options, CheckupdatesService checkupdatesService, ILogger<MetricsService> logger)
+    public PrometheusService(IOptions<Options.Prometheus> options, CheckupdatesService checkupdatesService, ILogger<PrometheusService> logger)
     {
         this.options = options;
         this.checkupdatesService = checkupdatesService;

@@ -1,6 +1,6 @@
 namespace Options;
 
-public class Metrics
+public class Prometheus
 {
     public int? Port { get; set; } = null!;
 }

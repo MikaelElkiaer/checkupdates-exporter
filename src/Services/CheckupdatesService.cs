@@ -2,71 +2,67 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Prometheus;
+using Models;
 
 namespace Services;
 
 public class CheckupdatesService : BackgroundService
 {
-    private readonly string[] metricLabels = new[] { "name", "level" };
-    private readonly Gauge gauge = null!;
     private readonly FileSystemWatcher watcher = null!;
-    private readonly string versionRegex = null!;
+    private const string versionRegex = @"^(?:.*:)?(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?((?:-|.|\+)(?<prerelease>.+))?$";
+    private HashSet<Update> updates = new();
 
     private readonly ILogger<CheckupdatesService> logger = null!;
+    public event EventHandler<UpdatesChangedEventArgs>? UpdatesChanged;
 
     public CheckupdatesService(IOptions<Options.Checkupdates> options, ILogger<CheckupdatesService> logger)
     {
         this.logger = logger;
 
-        gauge = Metrics.CreateGauge(
-            "checkupdates_available",
-            "Available updates to applied",
-            labelNames: metricLabels
-        );
         string directory = options.Value.Directory;
         string filename = options.Value.Filename;
         logger.LogInformation("Creating file watcher for {Directory}/{Filename}...", directory, filename);
         watcher = new(directory, filename);
+    }
 
-        versionRegex = options.Value.VersionRegex;
+    public HashSet<Update> GetCurrentUpdates()
+    {
+        return updates;
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         string file = Path.Combine(watcher.Path, watcher.Filter);
 
-        logger.LogInformation("Setting gauges for initial state...");
-        SetGauges(file);
-
         logger.LogInformation("Watching file {FilePath} for changes...", file);
-        watcher.Changed += OnChanged;
+        watcher.Changed += OnFileChanged;
         watcher.NotifyFilter = NotifyFilters.LastWrite;
         watcher.EnableRaisingEvents = true;
 
         return Task.CompletedTask;
     }
 
-    private void SetGauges(string filePath)
+    protected virtual void OnUpdatesChanged(UpdatesChangedEventArgs e)
     {
-        var updates = File.ReadLines(filePath)
+        EventHandler<UpdatesChangedEventArgs>? handler = UpdatesChanged;
+        if (handler != null)
+        {
+            handler(this, e);
+        }
+    }
+
+    private void OnFileChanged(object sender, FileSystemEventArgs e)
+    {
+        logger.LogInformation("File changed ({ChangeType})", e.ChangeType);
+
+        var updates = File.ReadLines(e.FullPath)
             .Select(GetChangeParameters)
             .ToHashSet();
 
-        IEnumerable<string[]> obsoleteGauges = gauge.GetAllLabelValues().Where(g => !updates.Contains(ToTuple(g)));
-        foreach (var g in obsoleteGauges)
-            this.gauge.WithLabels(g).Remove();
-        logger.LogInformation("Removed {ObsoleteCount} obsolete gauge values", obsoleteGauges.Count());
-
-        foreach (var u in updates)
-            this.gauge.WithLabels(ToArray(u)).Set(1);
-        logger.LogInformation("Set {UpdateCount} gauges", updates.Count);
+        OnUpdatesChanged(new(updates));
     }
 
-    private string[] ToArray((string Name, string Level) u) =>
-        new string[] { u.Name, u.Level };
-
-    private (string Name, string Level) GetChangeParameters(string updateLine)
+    private Update GetChangeParameters(string updateLine)
     {
         var split = updateLine.Split(' ');
         var name = split[0];
@@ -79,20 +75,18 @@ public class CheckupdatesService : BackgroundService
 
         foreach (var level in new[] { "major", "minor", "patch", "prerelease" })
             if (bv.Groups[level]?.Value != av.Groups[level]?.Value)
-                return (name, level);
+                return new(name, level);
 
-        return (name, "Unknown");
+        return new(name, "Unknown");
     }
 
-    private (string Name, string Level) ToTuple(string[] values) =>
-    (
-        values[0], values[1]
-    );
-
-    private void OnChanged(object sender, FileSystemEventArgs e)
+    public class UpdatesChangedEventArgs : EventArgs
     {
-        logger.LogInformation("File changed ({ChangeType}) - setting gauges...", e.ChangeType);
+        public UpdatesChangedEventArgs(HashSet<Update> updates)
+        {
+            Updates = updates;
+        }
 
-        SetGauges(e.FullPath);
+        public HashSet<Update> Updates { get; }
     }
 }

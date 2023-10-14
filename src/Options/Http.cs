@@ -1,6 +1,6 @@
 namespace Options;
 
-public class Json
+public class Http
 {
     public int? Port { get; set; } = null!;
 }

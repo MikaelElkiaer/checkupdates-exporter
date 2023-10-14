@@ -8,4 +8,4 @@ RUN dotnet publish -c Release -o /app
 FROM mcr.microsoft.com/dotnet/runtime:6.0 as runtime
 WORKDIR /app
 COPY --from=build /app .
-ENTRYPOINT ["dotnet", "CheckupdatesPrometheusExporter.dll"]
+ENTRYPOINT ["dotnet", "CheckupdatesExporter.dll"]

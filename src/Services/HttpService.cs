@@ -55,30 +55,50 @@ public class HttpService : BackgroundService
     private async Task OnContext(Task<HttpListenerContext> contextTask)
     {
         var context = await contextTask;
-        if (context.Request.HttpMethod != "GET")
+        try
         {
-            logger.LogWarning("Received HTTP request with method {Method}, expected GET", context.Request.HttpMethod);
-            context.Response.StatusCode = 405;
-            return;
-        }
+            var method = new HttpMethod(context.Request.HttpMethod);
+            if (method != HttpMethod.Get)
+            {
+                logger.LogWarning("Received HTTP request with method {Method}, expected GET", method);
+                context.Response.StatusCode = 405;
+                return;
+            }
 
-        string? path = context.Request.Url?.AbsolutePath.ToLowerInvariant();
-        logger.LogDebug("Handling HTTP request for path {Path}...", path);
-        switch (path)
+            string? path = context.Request.Url?.AbsolutePath.ToLowerInvariant();
+            logger.LogDebug("Handling HTTP request {Method} {Path}...", method, path);
+            switch (path)
+            {
+                case "/data":
+                    ReturnData(context);
+                    break;
+                case "/health":
+                    ReturnHealth(context);
+                    break;
+                default:
+                    context.Response.StatusCode = 404;
+                    context.Response.Close();
+                    break;
+            }
+
+            logger.LogInformation("Handled HTTP request {Method} {Path}", method, path);
+        }
+        catch (Exception ex)
         {
-            case "/data":
-                ReturnData(context);
-                break;
-            case "/health":
-                ReturnHealth(context);
-                break;
-            default:
-                context.Response.StatusCode = 404;
-                context.Response.Close();
-                break;
+            logger.LogError(ex, "Error handling HTTP request");
+            ReturnError(context);
         }
+    }
 
-        logger.LogInformation("Handled HTTP request for path {Path}", path);
+    private void ReturnData(HttpListenerContext context)
+    {
+        var updates = checkupdatesService.GetCurrentUpdates();
+        var json = JsonSerializer.Serialize(updates);
+
+        context.Response.ContentType = "application/json";
+        context.Response.ContentLength64 = Encoding.UTF8.GetByteCount(json);
+        context.Response.OutputStream.Write(Encoding.UTF8.GetBytes(json));
+        context.Response.OutputStream.Close();
     }
 
     private static void ReturnHealth(HttpListenerContext context)
@@ -90,14 +110,13 @@ public class HttpService : BackgroundService
         context.Response.OutputStream.Close();
     }
 
-    private void ReturnData(HttpListenerContext context)
+    private static void ReturnError(HttpListenerContext context)
     {
-        var updates = checkupdatesService.GetCurrentUpdates();
-        var json = JsonSerializer.Serialize(updates);
-
-        context.Response.ContentType = "application/json";
-        context.Response.ContentLength64 = Encoding.UTF8.GetByteCount(json);
-        context.Response.OutputStream.Write(Encoding.UTF8.GetBytes(json));
+        var body = Encoding.UTF8.GetBytes("InternalServerError");
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "text/plain";
+        context.Response.ContentLength64 = body.Length;
+        context.Response.OutputStream.Write(body);
         context.Response.OutputStream.Close();
     }
 }

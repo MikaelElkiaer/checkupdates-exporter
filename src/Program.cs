@@ -27,3 +27,6 @@ app.UseEndpoints(e =>
 });
 
 await app.RunAsync();
+
+// Make available to tests
+public partial class Program { }

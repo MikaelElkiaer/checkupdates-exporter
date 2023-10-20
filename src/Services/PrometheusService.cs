@@ -1,6 +1,3 @@
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Options;
 using Models;
 using Prometheus;
 
@@ -10,15 +7,12 @@ public class PrometheusService : BackgroundService
 {
     private readonly string[] metricLabels = new[] { "name", "level" };
     private readonly Gauge gauge = null!;
-    private readonly MetricServer metricServer = null!;
 
-    private readonly IOptions<Options.Prometheus> options = null!;
     private readonly CheckupdatesService checkupdatesService = null!;
     private readonly ILogger<PrometheusService> logger = null!;
 
-    public PrometheusService(IOptions<Options.Prometheus> options, CheckupdatesService checkupdatesService, ILogger<PrometheusService> logger)
+    public PrometheusService(CheckupdatesService checkupdatesService, ILogger<PrometheusService> logger)
     {
-        this.options = options;
         this.checkupdatesService = checkupdatesService;
         this.logger = logger;
 
@@ -29,19 +23,12 @@ public class PrometheusService : BackgroundService
         );
 
         checkupdatesService.UpdatesChanged += OnUpdatesChanged;
-
-        var port = options.Value.Port!.Value;
-        metricServer = new MetricServer(port: port);
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Setting gauges for initial state...");
         SetGauges(checkupdatesService.GetCurrentUpdates());
-
-        logger.LogDebug("Starting metrics server...");
-        metricServer.Start();
-        logger.LogInformation("Started metrics server");
 
         return Task.CompletedTask;
     }

@@ -1,15 +1,32 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using Prometheus;
 
-HostApplicationBuilder builder = Host.CreateApplicationBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
+
 builder.Services.AddHostedService<Services.CheckupdatesService>();
 builder.Services.AddSingleton<Services.CheckupdatesService>();
-builder.Services.AddHostedService<Services.HttpService>();
 builder.Services.AddHostedService<Services.PrometheusService>();
 
 builder.Services.Configure<Options.Checkupdates>(builder.Configuration.GetSection(nameof(Options.Checkupdates)));
-builder.Services.Configure<Options.Http>(builder.Configuration.GetSection(nameof(Options.Http)));
-builder.Services.Configure<Options.Prometheus>(builder.Configuration.GetSection(nameof(Options.Prometheus)));
 
-var host = builder.Build();
-await host.RunAsync();
+var app = builder.Build();
+
+app.UseRouting();
+if (app.Environment.IsProduction())
+    app.UseHttpsRedirection();
+else
+    app.UseDeveloperExceptionPage();
+
+app.UseEndpoints(e =>
+{
+    e.MapControllers();
+    e.MapHealthChecks("/healthz");
+    e.MapMetrics();
+});
+
+await app.RunAsync();
+
+// Make available to tests
+public partial class Program { }

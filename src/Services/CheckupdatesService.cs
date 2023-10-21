@@ -35,7 +35,9 @@ public class CheckupdatesService : BackgroundService
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!File.Exists(filePath))
+        if (File.Exists(filePath))
+            DoUpdate(filePath);
+        else
             logger.LogWarning("File {FilePath} does not exist!", filePath);
 
         logger.LogInformation("Watching file {FilePath} for changes...", filePath);

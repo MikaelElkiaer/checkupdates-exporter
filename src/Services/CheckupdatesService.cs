@@ -1,6 +1,4 @@
 using System.Text.RegularExpressions;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Models;
 
@@ -10,6 +8,7 @@ public class CheckupdatesService : BackgroundService
 {
     private readonly FileSystemWatcher watcher = null!;
     private const string versionRegex = @"^(?:.*:)?(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?((?:-|.|\+)(?<prerelease>.+))?$";
+    private readonly string filePath = null!;
     private HashSet<Update> updates = new();
 
     private readonly ILogger<CheckupdatesService> logger = null!;
@@ -21,20 +20,25 @@ public class CheckupdatesService : BackgroundService
 
         string directory = options.Value.Directory;
         string filename = options.Value.Filename;
-        logger.LogInformation("Creating file watcher for {Directory}/{Filename}...", directory, filename);
+        filePath = Path.Combine(directory, filename);
+        logger.LogInformation("Creating file watcher for {FilePath}...", filePath);
         watcher = new(directory, filename);
     }
 
-    public HashSet<Update> GetCurrentUpdates()
+    public HashSet<Update> GetCurrentUpdates(bool forceUpdate = false)
     {
-        return updates;
+        if (forceUpdate)
+            DoUpdate(filePath);
+
+        return new(updates, updates.Comparer);
     }
 
     protected override Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        string file = Path.Combine(watcher.Path, watcher.Filter);
+        if (!File.Exists(filePath))
+            logger.LogWarning("File {FilePath} does not exist!", filePath);
 
-        logger.LogInformation("Watching file {FilePath} for changes...", file);
+        logger.LogInformation("Watching file {FilePath} for changes...", filePath);
         watcher.Changed += OnFileChanged;
         watcher.NotifyFilter = NotifyFilters.LastWrite;
         watcher.EnableRaisingEvents = true;
@@ -53,13 +57,21 @@ public class CheckupdatesService : BackgroundService
 
     private void OnFileChanged(object sender, FileSystemEventArgs e)
     {
-        logger.LogInformation("File changed ({ChangeType})", e.ChangeType);
+        logger.LogInformation("File {FilePath} changed ({ChangeType})", e.FullPath, e.ChangeType);
 
-        var updates = File.ReadLines(e.FullPath)
+        DoUpdate(e.FullPath);
+
+        OnUpdatesChanged(new(updates));
+    }
+
+    private void DoUpdate(string filePath)
+    {
+        var changes = File.ReadLines(filePath)
             .Select(GetChangeParameters)
             .ToHashSet();
 
-        OnUpdatesChanged(new(updates));
+        lock (updates)
+            updates = changes;
     }
 
     private Update GetChangeParameters(string updateLine)
@@ -84,7 +96,7 @@ public class CheckupdatesService : BackgroundService
     {
         public UpdatesChangedEventArgs(HashSet<Update> updates)
         {
-            Updates = updates;
+            Updates = new(updates, updates.Comparer);
         }
 
         public HashSet<Update> Updates { get; }

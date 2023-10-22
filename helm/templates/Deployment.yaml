@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "common.names.fullname" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels: {{- include "common.labels.standard" $ | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "common.labels.matchLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels: {{- include "common.labels.standard" $ | nindent 8 }}
+    spec:
+      containers:
+        - name: checkupdates-exporter
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: "Production"
+            - name: ASPNETCORE_URLS
+              value: "http://+:8080"
+            - name: DOTNET_USE_POLLING_FILE_WATCHER
+              value: "true"
+          {{- with .Values.extraEnv }}
+          {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+          {{- end }}
+          image: {{ include "common.images.image" (dict "imageRoot" (include "common.tplvalues.render" (dict "value" .Values.image "context" $) | fromYaml) "global" .Values.global) }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 3
+          ports:
+            - name: http
+              containerPort: 8080
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL", "NET_RAW"]
+            runAsUser: 1001
+          volumeMounts:
+          {{- with .Values.extraVolumeMounts }}
+          {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 12 }}
+          {{- end }}
+      securityContext:
+        runAsNonRoot: true
+      volumes:
+      {{- with .Values.extraVolumes }}
+      {{- include "common.tplvalues.render" (dict "value" . "context" $) | nindent 8 }}
+      {{- end }}

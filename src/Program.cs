@@ -5,8 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddHealthChecks();
 
-builder.Services.AddHostedService<Services.CheckupdatesService>();
 builder.Services.AddSingleton<Services.CheckupdatesService>();
+builder.Services.AddHostedService<Services.CheckupdatesService>(p => p.GetRequiredService<Services.CheckupdatesService>());
 builder.Services.AddHostedService<Services.PrometheusService>();
 
 builder.Services.Configure<Options.Checkupdates>(builder.Configuration.GetSection(nameof(Options.Checkupdates)));

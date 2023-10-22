@@ -9,6 +9,7 @@ public class CheckupdatesService : BackgroundService
     private readonly FileSystemWatcher watcher = null!;
     private const string versionRegex = @"^(?:.*:)?(?<major>\d+)(?:\.(?<minor>\d+))?(?:\.(?<patch>\d+))?((?:-|.|\+)(?<prerelease>.+))?$";
     private readonly string filePath = null!;
+    private readonly Task startupTask = null!;
     private HashSet<Update> updates = new();
 
     private readonly ILogger<CheckupdatesService> logger = null!;
@@ -23,29 +24,23 @@ public class CheckupdatesService : BackgroundService
         filePath = Path.Combine(directory, filename);
         logger.LogInformation("Creating file watcher for {FilePath}...", filePath);
         watcher = new(directory, filename);
+
+        startupTask = Task.Run(Startup);
     }
 
-    public HashSet<Update> GetCurrentUpdates(bool forceUpdate = false)
+    public async Task<HashSet<Update>> GetCurrentUpdates(bool forceUpdate = false)
     {
+        await startupTask;
+
         if (forceUpdate)
             DoUpdate(filePath);
 
         return new(updates, updates.Comparer);
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (File.Exists(filePath))
-            DoUpdate(filePath);
-        else
-            logger.LogWarning("File {FilePath} does not exist!", filePath);
-
-        logger.LogInformation("Watching file {FilePath} for changes...", filePath);
-        watcher.Changed += OnFileChanged;
-        watcher.NotifyFilter = NotifyFilters.LastWrite;
-        watcher.EnableRaisingEvents = true;
-
-        return Task.CompletedTask;
+        await startupTask;
     }
 
     protected virtual void OnUpdatesChanged(UpdatesChangedEventArgs e)
@@ -57,11 +52,28 @@ public class CheckupdatesService : BackgroundService
         }
     }
 
+    private void Startup()
+    {
+        if (File.Exists(filePath))
+        {
+            logger.LogInformation("File {FilePath} exists, doing initial update...", filePath);
+            DoUpdate(filePath);
+        }
+        else
+            logger.LogWarning("File {FilePath} does not exist, skipping initial update...", filePath);
+
+        logger.LogInformation("Watching file {FilePath} for changes...", filePath);
+        watcher.Changed += OnFileChanged;
+        watcher.NotifyFilter = NotifyFilters.LastWrite;
+        watcher.EnableRaisingEvents = true;
+    }
+
     private void OnFileChanged(object sender, FileSystemEventArgs e)
     {
-        logger.LogInformation("File {FilePath} changed ({ChangeType})", e.FullPath, e.ChangeType);
+        logger.LogDebug("File {FilePath} changed ({ChangeType})", e.FullPath, e.ChangeType);
 
         DoUpdate(e.FullPath);
+        logger.LogInformation("File {FilePath} updated, {UpdateCount} updates found", e.FullPath, updates.Count);
 
         OnUpdatesChanged(new(updates));
     }
@@ -72,12 +84,16 @@ public class CheckupdatesService : BackgroundService
             .Select(GetChangeParameters)
             .ToHashSet();
 
+        logger.LogDebug("Found {UpdateCount} updates", changes.Count);
+
         lock (updates)
             updates = changes;
     }
 
     private Update GetChangeParameters(string updateLine)
     {
+        logger.LogTrace("Parsing line: {Line}", updateLine);
+
         var split = updateLine.Split(' ');
         var name = split[0];
         var beforeVersion = split[1];

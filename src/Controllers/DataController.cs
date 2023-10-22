@@ -15,9 +15,9 @@ public class DataController : ControllerBase
         this.logger = logger;
     }
 
-    public IActionResult Get()
+    public async Task<IActionResult> Get()
     {
-        var data = checkupdatesService.GetCurrentUpdates();
+        var data = await checkupdatesService.GetCurrentUpdates();
 
         return Ok(data);
     }

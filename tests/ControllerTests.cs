@@ -74,7 +74,7 @@ public class ControllerTests : IClassFixture<WebApplicationFactory<Program>>
     {
         var checkupdatesService = _factory.Services.GetRequiredService<Services.CheckupdatesService>();
         File.WriteAllText(filePath, "test 1.0.0 -> 1.1.0");
-        checkupdatesService.GetCurrentUpdates(true);
+        await checkupdatesService.GetCurrentUpdates(true);
 
         var client = _factory.CreateClient();
 

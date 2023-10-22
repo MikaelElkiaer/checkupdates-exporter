@@ -25,12 +25,11 @@ public class PrometheusService : BackgroundService
         checkupdatesService.UpdatesChanged += OnUpdatesChanged;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Setting gauges for initial state...");
-        SetGauges(checkupdatesService.GetCurrentUpdates());
-
-        return Task.CompletedTask;
+        var updates = await checkupdatesService.GetCurrentUpdates();
+        SetGauges(updates);
     }
 
     private void OnUpdatesChanged(object? sender, CheckupdatesService.UpdatesChangedEventArgs e)

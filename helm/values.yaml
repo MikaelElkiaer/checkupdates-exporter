@@ -9,10 +9,19 @@ global:
 nameOverride: ""
 fullnameOverride: ""
 
+extraEnv: {}
+extraVolumes: {}
+extraVolumeMounts: {}
+
 image:
   registry: ghcr.io
-  repository: mikaelelkiaer/checkupdates-prometheus-exporter
-  tag: 1.0.7
+  repository: mikaelelkiaer/checkupdates-exporter
+  tag: '{{ .Chart.AppVersion }}'
   digest: ""
   pullPolicy: IfNotPresent
   pullSecrets: []
+
+serviceMonitor:
+  enabled: false
+  labels:
+    release: prom-stack

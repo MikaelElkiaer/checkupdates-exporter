@@ -1,11 +1,11 @@
 apiVersion: v2
-name: checkupdates-prometheus-exporter
-description: Prometheus exporter that turns https://man.archlinux.org/man/checkupdates.8 output into labelled gauges.
+name: checkupdates-exporter
+description: Exporter that turns https://man.archlinux.org/man/checkupdates.8 into a http service.
 sources:
-  - https://github.com/mikaelelkiaer/checkupdates-prometheus-exporter/tree/main/helm
+  - https://github.com/mikaelelkiaer/checkupdates-exporter/tree/main/helm
 type: application
 version: 1.0.0
-appVersion: 1.0.7
+appVersion: 2.0.1
 dependencies:
   - name: common
     repository: oci://registry-1.docker.io/bitnamicharts

@@ -1,0 +1,27 @@
+# Inspired by https://github.com/bitnami/charts
+# Utilizes https://github.com/bitnami/charts/tree/main/bitnami/common
+
+global:
+  imageRegistry: ""
+  imagePullSecrets: []
+  storageClass: ""
+
+nameOverride: ""
+fullnameOverride: ""
+
+extraEnv: {}
+extraVolumes: {}
+extraVolumeMounts: {}
+
+image:
+  registry: ghcr.io
+  repository: mikaelelkiaer/checkupdates-exporter
+  tag: '{{ .Chart.AppVersion }}'
+  digest: ""
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+serviceMonitor:
+  enabled: false
+  labels:
+    release: prom-stack

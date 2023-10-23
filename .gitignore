@@ -402,3 +402,7 @@ FodyWeavers.xsd
 
 # dotnet publish output
 /app
+
+# Helm
+Chart.lock
+charts/

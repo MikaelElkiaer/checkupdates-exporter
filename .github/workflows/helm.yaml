@@ -1,0 +1,19 @@
+name: Create Cluster
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - helm
+
+jobs:
+  helm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Test - lint
+        run: ct lint --target-branch ${{ github.event.repository.default_branch }}
+      - name: Create Kind cluster
+        uses: helm/kind-action@v1.5.0
+      - name: Test - install
+        run: ct install --target-branch main

@@ -1,0 +1,19 @@
+apiVersion: v2
+name: checkupdates-exporter
+description: Exporter that turns https://man.archlinux.org/man/checkupdates.8 into a http service.
+sources:
+  - https://github.com/mikaelelkiaer/checkupdates-exporter/tree/main/helm
+type: application
+version: 1.0.0
+appVersion: 2.0.1
+dependencies:
+  - name: common
+    repository: oci://registry-1.docker.io/bitnamicharts
+    tags:
+      - bitnami-common
+    version: 2.x.x
+annotations:
+  # OCI container labels to be set before pushing
+  org.opencontainers.image.created: ""
+  org.opencontainers.image.licenses: ""
+  org.opencontainers.image.revision: ""

@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/aspnet:6.0 as runtime
+FROM mcr.microsoft.com/dotnet/aspnet:7.0 as runtime
 WORKDIR /app
 COPY app .
 ENV ASPNETCORE_URLS=http://+:8080

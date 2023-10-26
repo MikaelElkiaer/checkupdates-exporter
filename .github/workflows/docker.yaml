@@ -5,23 +5,17 @@ on:
     branches:
       - "main"
     paths:
-      - docker
-      - src
+      - docker/**
+      - src/**
     tags:
       - "v*.*.*"
   pull_request:
     branches:
       - "main"
     paths:
-      - docker
-      - src
-  pull_request_target:
-    branches:
-      - "main"
-    paths:
-      - docker
-      - src
-
+      - docker/**
+      - src/**
+      
 jobs:
   docker:
     runs-on: ubuntu-latest

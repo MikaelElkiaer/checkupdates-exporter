@@ -15,6 +15,12 @@ on:
     paths:
       - docker
       - src
+  pull_request_target:
+    branches:
+      - "main"
+    paths:
+      - docker
+      - src
 
 jobs:
   docker:

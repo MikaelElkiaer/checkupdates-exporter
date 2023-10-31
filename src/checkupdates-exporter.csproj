@@ -13,7 +13,7 @@
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="7.0.13" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="7.0.1" />
     <PackageReference Include="prometheus-net" Version="8.1.0" />
-    <PackageReference Include="prometheus-net.AspNetCore" Version="8.0.1" />
+    <PackageReference Include="prometheus-net.AspNetCore" Version="8.1.0" />
   </ItemGroup>
 
   <ItemGroup>
